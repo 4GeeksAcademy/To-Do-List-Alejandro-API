@@ -47,18 +47,6 @@ const List = () => {
     // API Create Task from UserName
     const createTask = async () => {
         try {
-            // const myHeaders = new Headers();
-            // myHeaders.append("Content-Type", "application/json");
-
-            // const raw = JSON.stringify(newListTask);
-
-            // const requestOptions = {
-            // method: "POST",
-            // headers: myHeaders,
-            // body: raw,
-            // redirect: "follow"
-            // };
-
             const response = await fetch(`https://playground.4geeks.com/todo/todos/${userName}`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
