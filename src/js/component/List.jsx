@@ -1,20 +1,19 @@
-import React, { useEffect, useState } from "react";
-import { UserRoundPlus, LogIn } from 'lucide-react';
+import React, { useState } from "react";
+import { UserRoundPlus, LogIn, CircleX } from 'lucide-react';
 
 const List = () => {
     const [userName, setUserName] = useState('');
+    const [accessUserName, setAccessUserName] = useState(userName);
     const [inputValue, setInputValue] = useState('');
     const [listTask, setListTask] = useState([]);
+    const [newListTask, setNewListTask] = useState({ label: '' });
     const [messageError, setMessageError] = useState('Enter some task');
-    const [showError, setShowError] = useState(false)
+    const [showError, setShowError] = useState(false);
+    const [messagesuccessful, setMessagesuccessful] = useState('User create successful');
+    const [showSuccessful, setShowSuccessful] = useState(false);
 
-    // Capture input from username
-    const handleUserName = e => {
-        setUserName(e.target.value);
-    }
-
-    // Create username and message error
-    const postUserName = () => {
+    // API Create username and message error
+    const createUser = () => {
         fetch(`https://playground.4geeks.com/todo/users/${userName}`, { method: 'POST' })
             .then(resp => {
                 resp.json();
@@ -22,31 +21,105 @@ const List = () => {
                     setMessageError('Username already exists');
                     setShowError(true);
                 }
+                if (resp.ok) {
+                    setShowSuccessful(true);
+                    setInterval(() => setShowSuccessful(false), 3000);
+                }
             })
             .catch(error => console.error(error))
+    };
+
+    // API Access username and show task from Username
+    const fetchUserTasks = () => {
+        fetch(`https://playground.4geeks.com/todo/users/${accessUserName}`)
+            .then(resp => {
+                if (resp.status === 404) {
+                    setMessageError('Username doesn\'t exist');
+                    setShowError(true);
+                    return null;
+                }
+                return resp.json();
+            })
+            .then(data => setListTask(data.todos))
+            .catch(error => console.error(error))
+    };
+
+    // API Create Task from UserName
+    const createTask = async () => {
+        try {
+            // const myHeaders = new Headers();
+            // myHeaders.append("Content-Type", "application/json");
+
+            // const raw = JSON.stringify(newListTask);
+
+            // const requestOptions = {
+            // method: "POST",
+            // headers: myHeaders,
+            // body: raw,
+            // redirect: "follow"
+            // };
+
+            const response = await fetch(`https://playground.4geeks.com/todo/todos/${userName}`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(newListTask)
+            });
+            await response.json();
+
+            fetchUserTasks();
+        } catch (error) {
+            console.error(error);
+        }
     }
+
+    // API Delete Task
+    const deleteTask = async id_task => {
+        try {              
+            await fetch(`https://playground.4geeks.com/todo/todos/${id_task}`, { method: "DELETE", redirect: "follow" });
+            fetchUserTasks();
+        } catch (error) {
+            console.error(error);
+        }
+    };
+
+    // Capture input from username
+    const handleUserName = e => setUserName(e.target.value);
 
     // Click and create username
     const handleKeyDownUserName = e => {
         if (e.key === 'Enter') {
-            postUserName();
+            createUser();
         }
-    }
+    };
 
     // Capture task
     const handleInputChange = e => {
-        setInputValue(e.target.value);
-    }
+        const value = e.target.value;
+        setInputValue(value);
+        setNewListTask(prev => ({
+            ...prev,
+            label: value
+        }));
+    };
+
+    const handleKeyDownAccessUserName = e => {
+        if (e.key === 'Enter') {
+            fetchUserTasks();
+        }
+    };
 
     // Create task
     const handleKeyDown = e => {
         if (e.key === 'Enter') {
-            setListTask(prev => [...prev, inputValue]);
+            createTask();
             setInputValue(e.target.value = '');
             setShowError(false);
         }
-    }
-	
+    };
+
+    // Capture Access User name
+    const handleAccessUserName = e => setAccessUserName(e.target.value);
+
     // Hidden Error
     const hiddenMenssageError = () => setShowError(false);
     
@@ -68,7 +141,7 @@ const List = () => {
                         <input 
                             type="text" 
                             className="form-control border-light bg-transparent mb-3"
-                            onChange={(e) => {
+                            onChange={e => {
                                 handleUserName(e);
                                 hiddenMenssageError();
                             }}
@@ -81,40 +154,46 @@ const List = () => {
                         <input 
                             type="text" 
                             className="form-control border-light bg-transparent mb-3"
-                            onChange={(e) => {
-                                handleUserName(e);
+                            onChange={e => {
+                                handleAccessUserName(e);
                                 hiddenMenssageError();
                             }}
-                            onKeyDown={handleKeyDownUserName}
+                            onKeyDown={handleKeyDownAccessUserName}
                             onClick={hiddenMenssageError}
                             placeholder="View task from username"
                         />
+
+                        <input
+                            type="text"
+                            id="task"
+                            className="form-control border-light bg-transparent"
+                            onChange={handleInputChange}
+                            onKeyDown={handleKeyDown}
+                            onClick={hiddenMenssageError}
+                            placeholder="Add a New Task"
+                        />
+
                     </div>
                 </div>
 
-                <input
-                    type="text"
-                    id="task"
-                    className="form-control border-light bg-transparent"
-                    onChange={handleInputChange}
-                    onKeyDown={handleKeyDown}
-                    onClick={hiddenMenssageError}
-                    placeholder="Add a New Task"
-                />
             </div>
             {showError && <div className="message-error text-danger">{messageError}</div>}
+            {showSuccessful && <div className="message-successful">{messagesuccessful}</div>}
             <div className="show-task mt-4">
                 <ul className="list-task">
-                    {listTask.map((task, index)=> (
-                        <li key={index} className="task-item">
-                            <span>🍃</span> {task}
-                            <button className="btn btn-danger" onClick={() => {
-                                const newArr = listTask.filter(taskOut => taskOut != task);
-                                setListTask(newArr);
-                            }}>X</button>
-                        </li>
-                    ))}
-                    {listTask.length === 0 ? <span style={{color: 'grey'}}>No tasks, add tasks</span> : ''}
+                    {listTask && listTask.length > 0 ? (
+                        listTask.map(task => (
+                            <li key={task.id} className="task-item">
+                                {task.label}
+                                <button className="btn btn-danger" onClick={e => {
+                                    deleteTask(task.id);
+                                    fetchUserTasks();
+                                    }}><CircleX /></button>
+                            </li>
+                        ))
+                    ) : (
+                        <span style={{ color: 'gray' }}>User has no tasks, add tasks</span>
+                    )}
                 </ul>
                 <span className="item-task">Tasks: {listTask.length}</span>
             </div>
