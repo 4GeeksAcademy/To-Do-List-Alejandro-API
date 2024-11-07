@@ -1,5 +1,6 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { UserRoundPlus, LogIn, CircleX } from 'lucide-react';
+import { resolvePath } from "react-router";
 
 const List = () => {
     const [userName, setUserName] = useState('');
@@ -11,6 +12,15 @@ const List = () => {
     const [showError, setShowError] = useState(false);
     const [messagesuccessful, setMessagesuccessful] = useState('User create successful');
     const [showSuccessful, setShowSuccessful] = useState(false);
+    const [ almacenaruser, setAlmacenarUser ] = useState([]);
+
+    // API Get all user
+    const getAllUser = () => {
+        fetch('https://playground.4geeks.com/todo/users')
+            .then(resp => resp.json())
+            .then(data => setAlmacenarUser(data.users))
+            .catch(error => console.error(error));
+    }
 
     // API Create username and message error
     const createUser = () => {
@@ -25,29 +35,35 @@ const List = () => {
                     setShowSuccessful(true);
                     setInterval(() => setShowSuccessful(false), 3000);
                 }
+                getAllUser();
+                setAccessUserName(userName);
+                fetchUserTasks();
             })
             .catch(error => console.error(error))
     };
 
     // API Access username and show task from Username
-    const fetchUserTasks = () => {
-        fetch(`https://playground.4geeks.com/todo/users/${accessUserName}`)
-            .then(resp => {
-                if (resp.status === 404) {
-                    setMessageError('Username doesn\'t exist');
-                    setShowError(true);
-                    return null;
-                }
-                return resp.json();
-            })
-            .then(data => setListTask(data.todos))
-            .catch(error => console.error(error))
+    const fetchUserTasks = async () => {
+        try {
+            const response = await fetch(`https://playground.4geeks.com/todo/users/${accessUserName}`);
+
+            if (response.status === 404) {
+                setMessageError("Username doesn't exist");
+                setShowError(true);
+                return null;
+            }
+
+            const data = await response.json();
+            setListTask(data.todos || []);
+        } catch (error) {
+            console.error(error);
+        }
     };
 
     // API Create Task from UserName
     const createTask = async () => {
         try {
-            const response = await fetch(`https://playground.4geeks.com/todo/todos/${userName}`, {
+            const response = await fetch(`https://playground.4geeks.com/todo/todos/${accessUserName}`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(newListTask)
@@ -62,7 +78,7 @@ const List = () => {
 
     // API Delete Task
     const deleteTask = async id_task => {
-        try {              
+        try {
             await fetch(`https://playground.4geeks.com/todo/todos/${id_task}`, { method: "DELETE", redirect: "follow" });
             fetchUserTasks();
         } catch (error) {
@@ -90,12 +106,6 @@ const List = () => {
         }));
     };
 
-    const handleKeyDownAccessUserName = e => {
-        if (e.key === 'Enter') {
-            fetchUserTasks();
-        }
-    };
-
     // Create task
     const handleKeyDown = e => {
         if (e.key === 'Enter') {
@@ -110,9 +120,12 @@ const List = () => {
 
     // Hidden Error
     const hiddenMenssageError = () => setShowError(false);
-    
+
+    // Get all user
+    useEffect(() => getAllUser(), []);
+
     return (
-		<div className='bg-info bg-opacity-10 border border-info rounded p-5'>
+		<div className='show-task bg-info bg-opacity-10 border border-info rounded p-5'>
             <div>
                 <h1 className="text-center">Task</h1>
 
@@ -126,8 +139,8 @@ const List = () => {
                 </ul>
                 <div className="tab-content" id="pills-tabContent">
                     <div className="tab-pane fade show active" id="pills-home" role="tabpanel" aria-labelledby="pills-home-tab">
-                        <input 
-                            type="text" 
+                        <input
+                            type="text"
                             className="form-control border-light bg-transparent mb-3"
                             onChange={e => {
                                 handleUserName(e);
@@ -139,17 +152,19 @@ const List = () => {
                         />
                     </div>
                     <div className="tab-pane fade" id="pills-profile" role="tabpanel" aria-labelledby="pills-profile-tab">
-                        <input 
-                            type="text" 
-                            className="form-control border-light bg-transparent mb-3"
+                        <select 
+                            className="form-select border-light bg-transparent mb-3" 
                             onChange={e => {
                                 handleAccessUserName(e);
-                                hiddenMenssageError();
+                                fetchUserTasks()
                             }}
-                            onKeyDown={handleKeyDownAccessUserName}
                             onClick={hiddenMenssageError}
-                            placeholder="View task from username"
-                        />
+                            defaultValue={userName}
+                        >
+                            {almacenaruser.reverse().map(user => {
+                                return (<option key={user.id} value={user.name}>{user.name}</option>)
+                            })}
+                        </select>
 
                         <input
                             type="text"
@@ -160,27 +175,26 @@ const List = () => {
                             onClick={hiddenMenssageError}
                             placeholder="Add a New Task"
                         />
-
                     </div>
                 </div>
 
             </div>
             {showError && <div className="message-error text-danger">{messageError}</div>}
             {showSuccessful && <div className="message-successful">{messagesuccessful}</div>}
-            <div className="show-task mt-4">
+            <div className="mt-4">
                 <ul className="list-task">
                     {listTask && listTask.length > 0 ? (
                         listTask.map(task => (
                             <li key={task.id} className="task-item">
                                 {task.label}
-                                <button className="btn btn-danger" onClick={e => {
+                                <button className="btn btn-danger" onClick={() => {
                                     deleteTask(task.id);
                                     fetchUserTasks();
                                     }}><CircleX /></button>
                             </li>
                         ))
                     ) : (
-                        <span style={{ color: 'gray' }}>User has no tasks, add tasks</span>
+                        <span className="aling-center" style={{ color: 'gray' }}>{accessUserName ? accessUserName : 'User'} has no tasks, add tasks</span>
                     )}
                 </ul>
                 <span className="item-task">Tasks: {listTask.length}</span>

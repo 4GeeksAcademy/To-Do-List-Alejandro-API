@@ -7,6 +7,10 @@ body {
     display: grid;
 }
 
+.show-task{
+    max-width: 300px;
+}
+
 .message-error{
     background-color:  rgba(255, 0, 0, 0.140);
     border: 1px solid #dc3545;
