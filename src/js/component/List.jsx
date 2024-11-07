@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from "react";
 import { UserRoundPlus, LogIn, CircleX } from 'lucide-react';
-import { resolvePath } from "react-router";
 
 const List = () => {
     const [userName, setUserName] = useState('');
@@ -37,7 +36,6 @@ const List = () => {
                 }
                 getAllUser();
                 setAccessUserName(userName);
-                fetchUserTasks();
             })
             .catch(error => console.error(error))
     };
@@ -50,7 +48,7 @@ const List = () => {
             if (response.status === 404) {
                 setMessageError("Username doesn't exist");
                 setShowError(true);
-                return null;
+                return;
             }
 
             const data = await response.json();
@@ -124,6 +122,12 @@ const List = () => {
     // Get all user
     useEffect(() => getAllUser(), []);
 
+    useEffect(() => {
+        if (accessUserName) {
+            fetchUserTasks();
+        }
+    }, [accessUserName]);
+
     return (
 		<div className='show-task bg-info bg-opacity-10 border border-info rounded p-5'>
             <div>
@@ -154,14 +158,11 @@ const List = () => {
                     <div className="tab-pane fade" id="pills-profile" role="tabpanel" aria-labelledby="pills-profile-tab">
                         <select 
                             className="form-select border-light bg-transparent mb-3" 
-                            onChange={e => {
-                                handleAccessUserName(e);
-                                fetchUserTasks()
-                            }}
-                            onClick={hiddenMenssageError}
-                            defaultValue={userName}
+                            onChange={handleAccessUserName}
+                            value={accessUserName}
                         >
-                            {almacenaruser.reverse().map(user => {
+                            <option value='' disabled>Select User Name</option>
+                            {almacenaruser.map(user => {
                                 return (<option key={user.id} value={user.name}>{user.name}</option>)
                             })}
                         </select>
